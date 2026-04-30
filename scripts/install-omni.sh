@@ -8,8 +8,8 @@ if command_exists omni; then
     exit 0
 fi
 
-log "installing omni via upstream installer"
-curl -fsSL https://raw.githubusercontent.com/automagik-dev/omni/main/install.sh | bash
+log "installing omni via upstream installer (full server)"
+curl -fsSL https://raw.githubusercontent.com/automagik-dev/omni/main/install.sh | bash -s -- --server
 
 if ! command_exists omni; then
     die "omni installer ran but 'omni' is not on PATH. Open a new shell or update PATH."
