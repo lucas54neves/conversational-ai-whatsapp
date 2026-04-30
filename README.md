@@ -60,7 +60,7 @@ startup.
 
 ```bash
 git clone <this repo> && cd conversational-ai-whatsapp-1
-cp .env.example .env && $EDITOR .env     # set POSTGRES_PASSWORD at minimum
+cp .env.example .env && "${EDITOR:-nano}" .env  # set POSTGRES_PASSWORD at minimum
 ./scripts/setup.sh                        # installs tools, brings up the stack, registers the agent
 ./scripts/pair-whatsapp.sh                # scans the QR with the WhatsApp app
 ```
