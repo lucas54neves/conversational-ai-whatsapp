@@ -141,6 +141,31 @@ checks pass.
 It does **not** uninstall Claude Code, Genie, or Omni globally. After
 teardown, `./scripts/setup.sh` reproduces the original state.
 
+## Tests
+
+The Python test suite lives at the repo root under `tests/`, split
+into `tests/unit/` (pure functions, no I/O) and `tests/integration/`
+(Postgres-backed via [testcontainers](https://testcontainers.com/)).
+The integration layer spins up `postgres:16-alpine` automatically and
+tears it down at the end of the session — no `TEST_DATABASE_URL` to
+export and nothing to start by hand.
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e .[test]
+
+pytest tests/unit/         # fast loop, no Docker
+pytest tests/integration/  # spins up an ephemeral Postgres container
+pytest                     # full suite
+pytest -m "not integration"  # shorthand for unit-only
+```
+
+The integration layer needs a working Docker socket. If you can run
+`docker compose` you are already set.
+
+`.github/workflows/test.yml` runs the same `pytest -v` command on
+every push and pull request via GitHub Actions.
+
 ## Troubleshooting
 
 - **QR expired before scanning.** Re-run `./scripts/pair-whatsapp.sh`.
