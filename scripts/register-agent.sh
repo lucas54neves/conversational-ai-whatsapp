@@ -1,43 +1,31 @@
 #!/usr/bin/env bash
-# Register the nutrition agent with Omni so incoming WhatsApp messages
-# route to Genie. Omni's agent integration is provider-based and uses
-# the OpenAI chat-completions schema, so Genie must expose an
-# OpenAI-compatible endpoint at the configured base URL.
+# Wire WhatsApp messages from Omni to the Genie nutrition agent via NATS.
+# Omni's CLI exposes `omni connect <instance-id> <agent-name>` for this;
+# the connection is bidirectional once the instance is paired and Genie
+# is running with the matching agent in its directory.
 #
 # Steps:
-#   1. Create an Omni provider pointing at the Genie service.
-#   2. Look up the WhatsApp instance id (created when you pair).
-#   3. Bind the provider to the instance.
-#
-# Re-running this script is safe: provider names are unique, so step 1
-# fails idempotently if already created.
+#   1. List Omni instances; pick the WhatsApp instance you paired.
+#   2. Export INSTANCE_ID=<id>.
+#   3. Re-run with --connect.
 
 set -euo pipefail
 
-PROVIDER_NAME="${PROVIDER_NAME:-nutrition-genie}"
-GENIE_BASE_URL="${GENIE_BASE_URL:-http://genie:4000}"
-OMNI_AGENT_API_KEY="${OMNI_AGENT_API_KEY:-genie-local}"
+AGENT_NAME="${AGENT_NAME:-nutrition}"
 
 run_omni() {
     docker compose exec -T omni omni "$@"
 }
 
-echo "[register] creating provider ${PROVIDER_NAME} -> ${GENIE_BASE_URL}"
-run_omni providers create \
-    --name "${PROVIDER_NAME}" \
-    --schema openai \
-    --base-url "${GENIE_BASE_URL}" \
-    --api-key "${OMNI_AGENT_API_KEY}" \
-    || echo "[register] provider may already exist — continuing"
-
-echo "[register] listing instances; pick the WhatsApp id you paired"
-run_omni instances list
-
-echo "[register] export INSTANCE_ID=<id> and re-run with --bind to attach the provider"
-
-if [[ "${1:-}" == "--bind" ]]; then
-    : "${INSTANCE_ID:?set INSTANCE_ID to the paired WhatsApp instance id}"
-    echo "[register] binding instance ${INSTANCE_ID} -> provider ${PROVIDER_NAME}"
-    run_omni instances update "${INSTANCE_ID}" --agent-provider "${PROVIDER_NAME}"
-    echo "[register] done"
+if [[ "${1:-}" != "--connect" ]]; then
+    echo "[register] listing Omni instances:"
+    run_omni instances list
+    echo "[register] export INSTANCE_ID=<id> and re-run: $0 --connect"
+    exit 0
 fi
+
+: "${INSTANCE_ID:?set INSTANCE_ID to the paired WhatsApp instance id}"
+
+echo "[register] connecting instance ${INSTANCE_ID} -> agent ${AGENT_NAME}"
+run_omni connect "${INSTANCE_ID}" "${AGENT_NAME}"
+echo "[register] done"

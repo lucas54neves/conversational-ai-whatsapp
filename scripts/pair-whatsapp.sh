@@ -20,8 +20,8 @@ fi
 
 if [[ -z "${INSTANCE_ID:-}" ]]; then
     echo "[pair] INSTANCE_ID is not set."
-    echo "[pair] listing existing instances; create one if the list is empty:"
-    echo "[pair]   docker compose exec omni omni instances create --channel whatsapp"
+    echo "[pair] listing existing instances; create one with:"
+    echo "[pair]   docker compose exec omni omni channels add --type whatsapp"
     docker compose exec -T omni omni instances list
     echo "[pair] export INSTANCE_ID=<id> and re-run this script"
     exit 0

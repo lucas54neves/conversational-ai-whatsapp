@@ -35,18 +35,21 @@ TACO dataset. Subsequent runs skip seeding.
 ## Pair WhatsApp
 
 ```bash
-./scripts/pair-whatsapp.sh
+# 1. Create a WhatsApp instance inside Omni (one-time)
+docker compose exec omni omni channels add --type whatsapp
+
+# 2. Capture the instance id
+docker compose exec omni omni instances list
+
+# 3. Stream the pairing QR — scan with the throwaway WhatsApp account
+INSTANCE_ID=<id-from-step-2> ./scripts/pair-whatsapp.sh
+
+# 4. Connect the WhatsApp instance to the nutrition agent over NATS
+INSTANCE_ID=<id> ./scripts/register-agent.sh --connect
 ```
 
-This tails the `omni` container's logs. Scan the QR with the WhatsApp account
-allocated to the agent. The session persists in the `omni_sessions` volume,
-so this is a one-time step unless that volume is wiped.
-
-Then register the agent route inside Omni so incoming messages reach Genie:
-
-```bash
-./scripts/register-agent.sh
-```
+The session lives in the `omni_data` volume, so pairing is a one-time
+step unless the volume is wiped.
 
 ## Verify
 
@@ -92,10 +95,11 @@ prompts for required values; the rest have safe defaults.
 Omni is already bound. Stop it or remap the port in `docker-compose.yml`.
 
 **Re-pair WhatsApp after a long offline period.** WhatsApp expires Web
-sessions after extended inactivity. Wipe only the session with
-`docker volume rm conversational-ai-whatsapp_omni_sessions`, then
-`docker compose up -d` and `./scripts/pair-whatsapp.sh` again. The
-nutrition database is in a different volume and is preserved.
+sessions after extended inactivity. Wipe Omni's data volume with
+`docker volume rm conversational-ai-whatsapp_omni_data` (this also clears
+any Omni-side state like instances and providers), bring the stack back
+up, and re-create the WhatsApp instance + pair. The nutrition database
+is in a separate volume and is preserved.
 
 **Postgres init failure on first boot.** Usually a leftover `postgres_data`
 volume from a previous run with a different password. Run
@@ -106,11 +110,13 @@ for crash stacks; check `docker compose ps` to confirm `mcp-server` is
 healthy. From inside the `genie` container,
 `curl http://mcp-server:8000/sse` should respond.
 
-**`omni install` fails during image build.** The `@automagik/omni` installer
-may be interactive in a build context. See `omni/Dockerfile` and the open
-items in `docs/specs/2026-04-30-reproducible-setup-design.md` §4.1; the fix
-is either a non-interactive flag or an `expect` wrapper, both pending
-verification against the upstream CLI.
+**Omni `omni-api` PM2 process keeps restarting with `initdb cannot be run
+as root`.** Omni's bundled Postgres (pgserve) refuses to run as root, and
+the `bun` image runs as root by default. This is a known open issue —
+see `omni/Dockerfile` header and
+`docs/specs/2026-04-30-reproducible-setup-design.md` §8. As a workaround,
+run Omni on the host instead of in compose: `bun add -g @automagik/omni`,
+`omni install`, then point the host-installed Omni at this stack.
 
 **`scripts/register-agent.sh` or `smoke-test.sh` returns 404.** Their API
 paths (`/api/v1/agents`, `/api/v1/messages`) are placeholders that need to

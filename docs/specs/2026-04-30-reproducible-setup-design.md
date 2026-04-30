@@ -73,69 +73,77 @@ and reverse-engineering port and `agent_url` wiring. The path from
 
 ### 4.1 `omni`
 
-**Base image:** `oven/bun:1` — Omni is a Bun/Node CLI per the nutrition design doc.
+**Base image:** `oven/bun:1` — Omni is a Bun/Node CLI.
 
 **Build steps (`omni/Dockerfile`):**
-1. Install OS deps required by Omni's bundled Postgres/NATS (`curl`, `ca-certificates`, libpq).
+1. Install `curl` and `ca-certificates`.
 2. `bun add -g @automagik/omni`.
-3. `omni install` at image build so PM2 services are pre-registered.
-   If the installer is interactive, feed answers via `expect` or use a
-   non-interactive flag once one is confirmed against Omni's CLI.
+3. Copy `entrypoint.sh` to `/usr/local/bin/omni-entrypoint`.
+
+`omni install` is run **at startup** (idempotent, non-interactive — confirmed
+via `omni install --help`), not at image build, because the API key comes
+from the environment at runtime.
 
 **Runtime:**
-- Entrypoint: `omni start` in the foreground so PID 1 forwards SIGTERM.
-  If `omni start` does not stay in foreground, wrap with `pm2-runtime`.
-- Exposed ports: `8882` (API). NATS (`4222`) and embedded Postgres (`8432`)
-  are container-internal.
-- Volumes:
-  - `omni_pg_data:/var/lib/omni/postgres` — Omni's bundled Postgres datadir.
-  - `omni_sessions:/var/lib/omni/sessions` — Baileys session and credentials.
-- Healthcheck: `curl -fsS http://localhost:8882/health` (path **TBD**, verify).
+- Entrypoint script runs `omni install --port $API_PORT --api-key $OMNI_API_KEY`,
+  then `omni start` (which provisions PM2-managed Postgres, NATS, and API),
+  then `pm2 logs` to keep PID 1 alive.
+- Exposed ports: `8882` (API), `4222` (NATS — needed by Genie).
+- Volumes: `omni_data:/root/.omni` — pgserve datadir, NATS state, Baileys
+  session. One volume keeps everything together since Omni manages all
+  three internally.
 - Environment:
-  - `AGENT_URL=http://genie:4000` — where Omni forwards messages.
-- `depends_on`: `genie` (started). Omni will retry on connection refusal,
-  so a strict healthy gate is not required.
+  - `API_PORT` (default `8882`).
+  - `OMNI_API_KEY` — explicit key so the smoke test and admin calls work.
+- Genie integration uses NATS (`omni connect <instance-id> <agent-name>`),
+  not HTTP. Genie subscribes to topics matching the agent name in its
+  workspace's `agents/` directory.
 
-**Open questions to verify before merging:**
-- Exact env var names Omni reads (`AGENT_URL` is a guess).
-- Whether `omni install` is non-interactive in a build context.
-- How Baileys QR is surfaced (logs, file, HTTP endpoint).
-- Whether Omni's bundled Postgres can be replaced by an external one.
+**Pairing flow:**
+1. `docker compose exec omni omni channels add --type whatsapp` creates an
+   instance.
+2. `docker compose exec omni omni instances list` returns its id.
+3. `docker compose exec omni omni instances qr <id> --watch` shows the QR.
+4. `docker compose exec omni omni connect <id> nutrition` wires it to the
+   `agents/nutrition/` agent loaded by Genie.
 
 ### 4.2 `genie`
 
-**Base image:** `node:20-slim`. Genie's installer expects a recent glibc and
-Node-style tooling; a Debian-slim base is the smallest reliable target.
+**Base image:** `node:20-slim`.
 
 **Build steps (`genie/Dockerfile`):**
-1. Install `curl`, `ca-certificates`, `tmux`, `git`. `tmux` is required because
+1. Install `ca-certificates`, `tmux`, `git`. `tmux` is required because
    `.genie/workspace.json` declares a `tmux.socket`.
-2. `curl -fsSL https://get.automagik.dev/genie | bash`. Pin to a tag once
-   one is confirmed against the upstream installer.
+2. `npm install -g automagik-genie@latest` (the canonical install per
+   the npm registry; the legacy `curl https://get.automagik.dev/genie | bash`
+   path returns 404 in the current host).
 3. No agent files are baked in — `agents/`, `.mcp.json`, and
-   `.genie/workspace.json` are bind-mounted read-only at runtime so edits
-   reload without rebuilding the image.
+   `.genie/workspace.json` are bind-mounted at runtime.
 
 **Runtime:**
-- Entrypoint: `genie start --port 4000` (exact flag **TBD**, verify against
-  Genie's CLI). The process must stay in the foreground.
-- Exposed ports: `4000` — internal only; only `omni` calls it.
+- Entrypoint: `genie` with no args. Per `genie --help`, this "starts
+  Genie server (Forge + MCP)".
 - Volumes:
-  - `./agents:/app/agents:ro`
-  - `./.genie:/app/.genie:ro`
+  - `./agents:/app/agents` — agent definitions; writable so Genie can update
+    its directory if needed.
+  - `./.genie:/app/.genie` — workspace config; writable for the same reason.
   - `./.mcp.json:/app/.mcp.json:ro`
-  - `genie_state:/var/lib/genie` — sessions, memory, conversation state.
-- Healthcheck: `curl -fsS http://localhost:4000/health` (path **TBD**).
+  - `genie_state:/var/lib/genie` — sessions, memory.
 - Environment:
   - `ANTHROPIC_API_KEY` — required.
-  - `MCP_SERVER_URL=http://mcp-server:8000/sse` — overrides the host in `.mcp.json`.
-- `depends_on`: `mcp-server` (healthy).
+  - `MCP_SERVER_URL=http://mcp-server:8000/sse`.
+  - `NATS_URL=nats://omni:4222` — for the `omni connect` integration.
+- `depends_on`: `omni` (started, for NATS), `mcp-server` (started).
 
 **Open questions to verify before merging:**
-- Exact `genie` CLI flags for headless / port-bound start.
-- Whether Genie expects a writable workspace dir (current mount is read-only).
-- How session state is partitioned per user — confirm `phone_number` propagates
-  through Omni → Genie as the session key.
+- Exact mechanism by which Genie subscribes to NATS topics for a given
+  agent name (after `omni connect <instance-id> <agent-name>`). The
+  integration is implied by `omni connect --help` ("Connect an Omni
+  instance to a Genie agent via NATS") but Genie's own CLI does not
+  document a NATS subscriber subcommand explicitly. May happen
+  automatically when both are running with shared workspace conventions.
+- Whether Genie auto-loads `.mcp.json` from the workspace root or
+  needs explicit configuration.
 
 ### 4.3 Unchanged services
 
@@ -206,15 +214,16 @@ Each step must complete in under five minutes on a fresh machine with Docker onl
 
 ## 8. Risks and Mitigations
 
-| Risk | Mitigation |
-|------|------------|
-| `omni install` is interactive in build context | `expect` script in Dockerfile, or pin to a non-interactive flag confirmed against Omni CLI |
-| PM2 inside Docker masks crashes | Use `pm2-runtime` (forwards exit codes) instead of `pm2 start` |
-| Baileys QR appears only on first run, lost in detached logs | `pair-whatsapp.sh` reads from a known log file or session dir |
-| Genie installer pulls a moving target | Pin to a specific version tag in the install command |
-| Two Postgres instances confuse reviewers | README labels them: "nutrition data" vs. "Omni internal" |
-| WhatsApp session lost on `docker compose down -v` | `teardown.sh` requires explicit `--purge` flag for `-v` |
-| Omni env var names are guesses | Verify against Omni docs; replace placeholders before merge |
+| Risk | Status | Mitigation |
+|------|--------|------------|
+| **Omni pgserve refuses root** | **Open** | `initdb` (postgres binary used by Omni's bundled pgserve) bails out when run as root; the bun image runs as root by default. `--database-url` saves an external URL into Omni's config but the API still tries to spawn pgserve at boot and crashloops. Workarounds attempted: switching to non-root broke `bun add -g` linking under `/usr/local`. Open paths: (a) run Omni on the host as the original nutrition spec prescribed, (b) custom non-root image with bun installs landing under the user's home, (c) confirm with upstream whether there is a flag to fully disable pgserve. |
+| **Genie NATS subscription mechanism** | **Open** | `omni connect <instance> <agent>` documents a NATS-based handoff to Genie, but Genie's CLI does not expose an explicit NATS-subscriber subcommand. Likely automatic when Genie's `agents/<name>/` matches and both share NATS, but unverified. |
+| `omni install` is interactive in build context | Resolved | Confirmed non-interactive — installer prints "[deprecated] silent no-op". |
+| PM2 inside Docker masks crashes | Mitigated | Entrypoint runs `pm2 logs --raw` so crashes surface in container stdout. |
+| Baileys QR appears only on first run, lost in detached logs | Mitigated | `omni instances qr <id> --watch` streams the QR on demand via the script. |
+| Genie installer pulls a moving target | Mitigated | Switched to `npm install -g automagik-genie@latest` (the legacy `get.automagik.dev/genie` curl path 404s). |
+| Two Postgres instances confuse reviewers | N/A | Omni manages its bundled pgserve internally; only one Postgres is exposed in compose (the nutrition one on 5432). |
+| WhatsApp session lost on `docker compose down -v` | Mitigated | `teardown.sh` requires `--purge` for `-v`. |
 
 ---
 

@@ -38,56 +38,45 @@ services:
       DATABASE_URL: postgresql://nutrition:${POSTGRES_PASSWORD}@postgres:5432/nutrition
     restart: unless-stopped
 
-  # NATS — required by Omni for internal eventing.
-  nats:
-    image: nats:2-alpine
+  # Omni — Postgres ("pgserve") and NATS are bundled via `omni install`
+  # and managed by PM2 inside the container. Both API (8882) and NATS
+  # (4222) are exposed so Genie can subscribe via NATS for the
+  # `omni connect` integration. See
+  # docs/specs/2026-04-30-reproducible-setup-design.md §4.1.
+  omni:
+    build: ./omni
     ports:
+      - "8882:8882"
       - "4222:4222"
+    environment:
+      API_PORT: "8882"
+      OMNI_API_KEY: ${OMNI_API_KEY}
+    volumes:
+      - omni_data:/root/.omni
     restart: unless-stopped
 
-  # Genie orchestrator — exposes :4000 internally; only `omni` calls it.
-  # Agent and MCP definitions are bind-mounted so edits reload without
-  # rebuilding the image. See docs/specs/2026-04-30-reproducible-setup-design.md.
+  # Genie — runs the Forge + MCP server (`genie` with no args). Subscribes
+  # to NATS at omni:4222 once Omni's `connect` command binds an instance
+  # to an agent in this workspace's `agents/` directory.
   genie:
     build: ./genie
     depends_on:
+      omni:
+        condition: service_started
       mcp-server:
         condition: service_started
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
       MCP_SERVER_URL: http://mcp-server:8000/sse
+      NATS_URL: nats://omni:4222
     volumes:
-      - ./agents:/app/agents:ro
-      - ./.genie:/app/.genie:ro
+      - ./agents:/app/agents
+      - ./.genie:/app/.genie
       - ./.mcp.json:/app/.mcp.json:ro
       - genie_state:/var/lib/genie
-    restart: unless-stopped
-
-  # Omni WhatsApp bridge — uses the existing Postgres (database `omni`,
-  # auto-created by db/init/01-create-omni-db.sql) and the sibling NATS
-  # service. Baileys session persists in omni_sessions so pairing is
-  # one-time. See docs/specs/2026-04-30-reproducible-setup-design.md §4.1.
-  omni:
-    build: ./omni
-    ports:
-      - "8882:8882"
-    depends_on:
-      postgres:
-        condition: service_healthy
-      nats:
-        condition: service_started
-      genie:
-        condition: service_started
-    environment:
-      API_PORT: "8882"
-      DATABASE_URL: postgresql://nutrition:${POSTGRES_PASSWORD}@postgres:5432/omni
-      NATS_URL: nats://nats:4222
-      OMNI_API_KEY: ${OMNI_API_KEY}
-    volumes:
-      - omni_sessions:/var/lib/omni/sessions
     restart: unless-stopped
 
 volumes:
   postgres_data:
   genie_state:
-  omni_sessions:
+  omni_data:
