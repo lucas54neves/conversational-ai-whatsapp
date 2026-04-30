@@ -1,83 +1,51 @@
 services:
   postgres:
-    image: postgres:16
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - pg_data:/var/lib/postgresql/data
     ports:
       - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./db/init:/docker-entrypoint-initdb.d:ro
-    environment:
-      POSTGRES_DB: nutrition
-      POSTGRES_USER: nutrition
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nutrition"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
       interval: 5s
-      timeout: 5s
-      retries: 5
+      timeout: 3s
+      retries: 10
 
-  seed:
-    build:
-      context: ./db
-      dockerfile: seed/Dockerfile
+  db-seed:
+    build: ./db/seed
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://nutrition:${POSTGRES_PASSWORD}@postgres:5432/nutrition
     restart: "no"
 
   mcp-server:
     build: ./mcp-server
-    ports:
-      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
+      PORT: 8000
     depends_on:
       postgres:
         condition: service_healthy
-    environment:
-      DATABASE_URL: postgresql://nutrition:${POSTGRES_PASSWORD}@postgres:5432/nutrition
-    restart: unless-stopped
-
-  # Omni — Postgres ("pgserve") and NATS are bundled via `omni install`
-  # and managed by PM2 inside the container. Both API (8882) and NATS
-  # (4222) are exposed so Genie can subscribe via NATS for the
-  # `omni connect` integration. See
-  # docs/specs/2026-04-30-reproducible-setup-design.md §4.1.
-  omni:
-    build:
-      context: .
-      dockerfile: omni/Dockerfile
+      db-seed:
+        condition: service_completed_successfully
     ports:
-      - "8882:8882"
-      - "4222:4222"
-    environment:
-      API_PORT: "8882"
-      OMNI_API_KEY: ${OMNI_API_KEY}
-    volumes:
-      - omni_data:/home/omni/.omni
+      - "8000:8000"
     restart: unless-stopped
-
-  # Genie — runs the Forge + MCP server (`genie` with no args). Subscribes
-  # to NATS at omni:4222 once Omni's `connect` command binds an instance
-  # to an agent in this workspace's `agents/` directory.
-  genie:
-    build: ./genie
-    depends_on:
-      omni:
-        condition: service_started
-      mcp-server:
-        condition: service_started
-    environment:
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY}
-      MCP_SERVER_URL: http://mcp-server:8000/sse
-      NATS_URL: nats://omni:4222
-    volumes:
-      - ./agents:/app/agents
-      - genie_state:/app/.genie
-      - ./.mcp.json:/app/.mcp.json:ro
-    restart: unless-stopped
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import socket,sys; s=socket.socket(); s.settimeout(2); s.connect(('127.0.0.1',8000))"
+      interval: 5s
+      timeout: 3s
+      retries: 10
 
 volumes:
-  postgres_data:
-  genie_state:
-  omni_data:
+  pg_data:
