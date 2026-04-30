@@ -47,35 +47,35 @@ def get_user_profile(phone: str) -> dict | None:
 
 
 @mcp.tool()
-def save_meal(
-    phone: str,
-    food_name: str,
-    taco_food_id: int,
-    quantity_g: float,
-) -> dict:
-    """Log a meal for a user.
+def save_meals(phone: str, items: list[dict]) -> list[dict]:
+    """Log one or more meals atomically for a user.
 
-    Calories and macros are calculated proportionally from the TACO per-100g values.
-    Only call this after the user has confirmed the meal summary.
+    Each item must contain `food_name`, `taco_food_id`, and `quantity_g`.
+    All inserts share a single transaction — if any food id is invalid,
+    nothing is committed. Calories and macros are calculated proportionally
+    from the TACO per-100g values. Only call this after the user has
+    confirmed the meal summary.
     """
-    return t.save_meal(phone, food_name, taco_food_id, quantity_g)
+    return t.save_meals(phone, items)
 
 
 @mcp.tool()
-def get_daily_summary(phone: str, date: str | None = None) -> dict:
+def get_daily_summary(phone: str, date: str | None = None) -> dict | None:
     """Get a user's daily meal totals vs. targets.
 
     date format: YYYY-MM-DD. Defaults to today when omitted.
     Returns consumed amounts, targets, and percentage progress per macro.
+    Returns None when the user has no profile — route to onboarding.
     """
     return t.get_daily_summary(phone, date)
 
 
 @mcp.tool()
-def get_weekly_history(phone: str) -> list[dict]:
+def get_weekly_history(phone: str) -> list[dict] | None:
     """Get the last 7 days of daily summaries for a user.
 
     Returns daily totals for calories and macros for each of the past 7 days.
+    Returns None when the user has no profile — route to onboarding.
     """
     return t.get_weekly_history(phone)
 

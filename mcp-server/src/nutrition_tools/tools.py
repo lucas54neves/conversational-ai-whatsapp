@@ -148,53 +148,69 @@ def get_user_profile(phone: str) -> dict | None:
     }
 
 
-def save_meal(
-    phone: str,
-    food_name: str,
-    taco_food_id: int,
-    quantity_g: float,
-) -> dict:
+def save_meals(phone: str, items: list[dict]) -> list[dict]:
+    """Log one or more meals atomically.
+
+    Each item is `{food_name, taco_food_id, quantity_g}`. All inserts share a
+    single transaction — if any food id is missing, none are committed.
+    """
+    if not items:
+        raise ValueError("items must contain at least one entry")
+
+    saved: list[dict] = []
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                "SELECT calories, protein, carbs, fat FROM taco_foods WHERE id = %s",
-                (taco_food_id,),
-            )
-            food = cur.fetchone()
-            if food is None:
-                raise ValueError(f"Food with id {taco_food_id} not found")
+            for item in items:
+                food_name = item["food_name"]
+                taco_food_id = int(item["taco_food_id"])
+                quantity_g = float(item["quantity_g"])
 
-            factor = quantity_g / 100.0
-            calories = round(float(food[0]) * factor, 2)
-            protein = round(float(food[1]) * factor, 2)
-            carbs = round(float(food[2]) * factor, 2)
-            fat = round(float(food[3]) * factor, 2)
+                cur.execute(
+                    "SELECT calories, protein, carbs, fat FROM taco_foods WHERE id = %s",
+                    (taco_food_id,),
+                )
+                food = cur.fetchone()
+                if food is None:
+                    raise ValueError(f"Food with id {taco_food_id} not found")
 
-            cur.execute(
-                """
-                INSERT INTO meal_logs
-                    (phone_number, food_name, taco_food_id, quantity_g,
-                     calories, protein, carbs, fat)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                RETURNING id, food_name, quantity_g, calories, protein, carbs, fat, logged_at
-                """,
-                (phone, food_name, taco_food_id, quantity_g, calories, protein, carbs, fat),
-            )
-            row = cur.fetchone()
+                factor = quantity_g / 100.0
+                calories = round(float(food[0]) * factor, 2)
+                protein = round(float(food[1]) * factor, 2)
+                carbs = round(float(food[2]) * factor, 2)
+                fat = round(float(food[3]) * factor, 2)
 
-        return {
-            "id": row[0],
-            "food_name": row[1],
-            "quantity_g": float(row[2]),
-            "calories": float(row[3]),
-            "protein": float(row[4]),
-            "carbs": float(row[5]),
-            "fat": float(row[6]),
-            "logged_at": row[7].isoformat(),
-        }
+                cur.execute(
+                    """
+                    INSERT INTO meal_logs
+                        (phone_number, food_name, taco_food_id, quantity_g,
+                         calories, protein, carbs, fat)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id, food_name, quantity_g, calories, protein, carbs, fat, logged_at
+                    """,
+                    (phone, food_name, taco_food_id, quantity_g, calories, protein, carbs, fat),
+                )
+                row = cur.fetchone()
+                saved.append(
+                    {
+                        "id": row[0],
+                        "food_name": row[1],
+                        "quantity_g": float(row[2]),
+                        "calories": float(row[3]),
+                        "protein": float(row[4]),
+                        "carbs": float(row[5]),
+                        "fat": float(row[6]),
+                        "logged_at": row[7].isoformat(),
+                    }
+                )
+    return saved
 
 
-def get_daily_summary(phone: str, date_str: str | None = None) -> dict:
+def get_daily_summary(phone: str, date_str: str | None = None) -> dict | None:
+    """Return daily totals and percentages versus targets.
+
+    Returns None when the user has no profile, mirroring `get_user_profile`
+    so the agent can route to onboarding without catching exceptions.
+    """
     target_date = date.fromisoformat(date_str) if date_str else date.today()
 
     with get_conn() as conn:
@@ -209,7 +225,7 @@ def get_daily_summary(phone: str, date_str: str | None = None) -> dict:
             )
             user = cur.fetchone()
             if user is None:
-                raise ValueError("User not found")
+                return None
 
             targets = {
                 "calories": float(user[0]) if user[0] is not None else 0.0,
@@ -232,6 +248,63 @@ def get_daily_summary(phone: str, date_str: str | None = None) -> dict:
             )
             totals_row = cur.fetchone()
 
+    return _build_summary(target_date, totals_row, targets)
+
+
+def get_weekly_history(phone: str) -> list[dict] | None:
+    """Return the last 7 days of summaries in a single aggregated query.
+
+    Returns None when the user has no profile.
+    """
+    today = date.today()
+    start = today - timedelta(days=6)
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT target_calories, target_protein, target_carbs, target_fat
+                FROM users
+                WHERE phone_number = %s
+                """,
+                (phone,),
+            )
+            user = cur.fetchone()
+            if user is None:
+                return None
+
+            targets = {
+                "calories": float(user[0]) if user[0] is not None else 0.0,
+                "protein": float(user[1]) if user[1] is not None else 0.0,
+                "carbs": float(user[2]) if user[2] is not None else 0.0,
+                "fat": float(user[3]) if user[3] is not None else 0.0,
+            }
+
+            cur.execute(
+                """
+                SELECT logged_at::date AS day,
+                       COALESCE(SUM(calories), 0),
+                       COALESCE(SUM(protein), 0),
+                       COALESCE(SUM(carbs), 0),
+                       COALESCE(SUM(fat), 0)
+                FROM meal_logs
+                WHERE phone_number = %s
+                  AND logged_at::date BETWEEN %s AND %s
+                GROUP BY day
+                """,
+                (phone, start, today),
+            )
+            by_day = {row[0]: row[1:] for row in cur.fetchall()}
+
+    summaries = []
+    for offset in range(6, -1, -1):
+        day = today - timedelta(days=offset)
+        totals_row = by_day.get(day, (0, 0, 0, 0))
+        summaries.append(_build_summary(day, totals_row, targets))
+    return summaries
+
+
+def _build_summary(day: date, totals_row, targets: dict) -> dict:
     totals = {
         "calories": float(totals_row[0]),
         "protein": float(totals_row[1]),
@@ -243,7 +316,7 @@ def get_daily_summary(phone: str, date_str: str | None = None) -> dict:
         return round(consumed / target * 100, 1) if target > 0 else 0.0
 
     return {
-        "date": target_date.isoformat(),
+        "date": day.isoformat(),
         "consumed": totals,
         "targets": targets,
         "percentages": {
@@ -253,11 +326,3 @@ def get_daily_summary(phone: str, date_str: str | None = None) -> dict:
             "fat": pct(totals["fat"], targets["fat"]),
         },
     }
-
-
-def get_weekly_history(phone: str) -> list[dict]:
-    today = date.today()
-    return [
-        get_daily_summary(phone, (today - timedelta(days=i)).isoformat())
-        for i in range(6, -1, -1)
-    ]
