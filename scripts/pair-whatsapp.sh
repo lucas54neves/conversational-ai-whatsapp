@@ -1,31 +1,31 @@
 #!/usr/bin/env bash
-# Pair WhatsApp by streaming the QR from Omni. After the first run you
-# need to know your instance id — list them with:
-#
-#     docker compose exec omni omni instances list
-#
-# Then export INSTANCE_ID=<id> and re-run this script.
-#
-# Already-paired sessions persist in the omni_sessions volume; re-running
-# is harmless.
+# Interactive script that pairs a WhatsApp number with the nutrition Omni
+# instance. If already paired, asks whether to re-pair (logout + new QR).
 
-set -euo pipefail
+source "$(dirname "$0")/lib/common.sh"
 
-cd "$(dirname "$0")/.."
+command_exists omni || die "omni CLI not found. Run scripts/install-omni.sh first."
+command_exists jq   || die "jq not found. Run scripts/install-deps.sh first."
 
-if ! docker compose ps --services --status running | grep -q '^omni$'; then
-    echo "[pair] omni is not running — start it with 'docker compose up -d' first" >&2
-    exit 1
+AGENT_NAME="nutrition"
+
+INSTANCE_ID=$(omni instances list --json | jq -r --arg n "$AGENT_NAME" '.[] | select(.name==$n) | .id // empty')
+if [ -z "$INSTANCE_ID" ]; then
+    die "omni instance '$AGENT_NAME' not found. Run scripts/configure-omni.sh first."
 fi
 
-if [[ -z "${INSTANCE_ID:-}" ]]; then
-    echo "[pair] INSTANCE_ID is not set."
-    echo "[pair] listing existing instances; create one with:"
-    echo "[pair]   docker compose exec -T omni sh -lc 'export PATH=/home/omni/.local/bin:/home/omni/.bun/bin:\$PATH; omni channels add whatsapp-baileys'"
-    docker compose exec -T omni sh -lc 'export PATH=/home/omni/.local/bin:/home/omni/.bun/bin:$PATH; omni instances list'
-    echo "[pair] export INSTANCE_ID=<id> and re-run this script"
-    exit 0
+PHONE=$(omni instances whoami "$INSTANCE_ID" 2>/dev/null | jq -r '.phone // empty' 2>/dev/null || true)
+
+if [ -n "$PHONE" ] && [ "$PHONE" != "null" ]; then
+    log "instance $INSTANCE_ID is already paired to $PHONE"
+    if confirm "Re-pair?"; then
+        log "logging out current session"
+        omni instances logout "$INSTANCE_ID"
+    else
+        log "keeping existing pairing, exiting"
+        exit 0
+    fi
 fi
 
-echo "[pair] streaming QR for instance ${INSTANCE_ID} — scan with WhatsApp"
-docker compose exec -T omni sh -lc "export PATH=/home/omni/.local/bin:/home/omni/.bun/bin:\$PATH; omni instances qr \"${INSTANCE_ID}\""
+log "opening WhatsApp QR (scan from the WhatsApp app: Linked Devices)"
+omni instances qr "$INSTANCE_ID"
