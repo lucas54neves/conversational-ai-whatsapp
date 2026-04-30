@@ -62,7 +62,7 @@ def db_url(request) -> str:
 
 
 @pytest.fixture(scope="session")
-def seed_module():
+def seed_module(db_url):
     spec = importlib.util.spec_from_file_location("seed_loader", SEED_SCRIPT)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
