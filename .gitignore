@@ -6,3 +6,6 @@ __pycache__/
 node_modules/
 pg_data/
 tmux-*
+*.egg-info/
+build/
+.pytest_cache/

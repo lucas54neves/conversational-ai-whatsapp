@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "conversational-ai-whatsapp-tests"
+version = "0.0.0"
+requires-python = ">=3.11"
+dependencies = ["nutrition-tools @ file:./mcp-server"]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "testcontainers[postgres]>=4.0",
+    "psycopg2-binary>=2.9.0",
+]
+
+[tool.setuptools]
+packages = []
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: requires a postgres container (started by tests/conftest.py)",
+]
