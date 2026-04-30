@@ -166,6 +166,60 @@ The integration layer needs a working Docker socket. If you can run
 `.github/workflows/test.yml` runs the same `pytest -v` command on
 every push and pull request via GitHub Actions.
 
+## Git hooks
+
+The repo uses [`pre-commit`](https://pre-commit.com/) to run lint,
+format, and the test suite before every commit, and to validate that
+commit messages follow
+[Conventional Commits](https://www.conventionalcommits.org/). The
+configuration lives in `.pre-commit-config.yaml`.
+
+### Bootstrap (one-time per clone)
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[test,dev]"
+pre-commit install
+pre-commit install --hook-type commit-msg
+```
+
+### What runs
+
+On `git commit` the following hooks run in order, and any failure
+aborts the commit:
+
+- Hygiene checks: trailing whitespace, end-of-file newline, YAML / TOML
+  / JSON syntax, merge markers, large files.
+- `ruff check --fix` and `ruff format` on staged Python files.
+- The full `pytest` suite, including the Postgres testcontainer used by
+  integration tests (see [Tests](#tests)).
+
+On the commit message the `conventional-pre-commit` hook validates the
+format and rejects messages that do not start with one of the eight
+types declared in [`AGENTS.md`](AGENTS.md#git-commits): `feat`, `fix`,
+`docs`, `chore`, `refactor`, `test`, `ci`, `build`.
+
+### Activate the venv before committing
+
+The pytest hook calls `pytest` from `PATH` (`language: system` in the
+config), so **your `.venv` must be activated** when you run
+`git commit`. If git cannot find `pytest`, the hook fails with
+`Executable pytest not found`. Run `source .venv/bin/activate` before
+committing.
+
+### Escape hatches
+
+- `git commit --no-verify` — skips every hook, including the
+  commit-message validator. Use sparingly for WIP commits you intend to
+  clean up.
+- `SKIP=pytest git commit -m "..."` — runs lint, format, and
+  commit-message validation but skips only the slow test hook. Useful
+  when iterating on docs or config and you know tests are unaffected.
+
+CI runs the full pytest suite on every push
+(`.github/workflows/test.yml`), so anything bypassed locally is still
+caught before merge.
+
 ## Troubleshooting
 
 - **QR expired before scanning.** Re-run `./scripts/pair-whatsapp.sh`.
@@ -209,7 +263,8 @@ every push and pull request via GitHub Actions.
 │   └── specs/2026-04-30-dockerized-setup-design.md
 ├── docker-compose.yml
 ├── .env.example
-└── .mcp.json
+├── .mcp.json
+└── .pre-commit-config.yaml
 ```
 
 ## Adapting to a different domain
