@@ -35,7 +35,7 @@ check tmux   "sudo apt install -y tmux"          "brew install tmux"
 check git    "sudo apt install -y git"           "brew install git"
 check gh     "see https://cli.github.com"        "brew install gh"
 check jq     "sudo apt install -y jq"            "brew install jq"
-check yq     "sudo snap install yq"              "brew install yq"
+check yq     "sudo curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && sudo chmod +x /usr/local/bin/yq" "brew install yq"
 check curl   "sudo apt install -y curl"          "brew install curl"
 
 if [ "$missing" -gt 0 ]; then
