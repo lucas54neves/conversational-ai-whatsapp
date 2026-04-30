@@ -1,13 +1,7 @@
 .env
-tmux-client*
-tmux-server*
-.genie/
-
-# Python
+.DS_Store
 __pycache__/
-*.py[cod]
-*.egg-info/
-.pytest_cache/
-
-# AI
-.codex
+*.pyc
+.venv/
+node_modules/
+pg_data/

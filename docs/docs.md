@@ -1,0 +1,2 @@
+- Genie: https://docs.automagik.dev/genie
+- Omin: https://docs.automagik.dev
