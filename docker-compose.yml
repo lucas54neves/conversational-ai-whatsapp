@@ -44,7 +44,9 @@ services:
   # `omni connect` integration. See
   # docs/specs/2026-04-30-reproducible-setup-design.md §4.1.
   omni:
-    build: ./omni
+    build:
+      context: .
+      dockerfile: omni/Dockerfile
     ports:
       - "8882:8882"
       - "4222:4222"
@@ -52,7 +54,7 @@ services:
       API_PORT: "8882"
       OMNI_API_KEY: ${OMNI_API_KEY}
     volumes:
-      - omni_data:/root/.omni
+      - omni_data:/home/omni/.omni
     restart: unless-stopped
 
   # Genie — runs the Forge + MCP server (`genie` with no args). Subscribes

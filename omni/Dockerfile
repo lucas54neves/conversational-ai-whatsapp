@@ -1,32 +1,32 @@
-# Omni image — wraps @automagik/omni since no official image is published.
-#
-# KNOWN ISSUE: Omni's bundled Postgres (pgserve) refuses to run as root
-# (initdb safety check). The bun image runs as root by default, and
-# attempts to switch to a non-root user broke `bun add -g` permissions.
-# `omni install --database-url` saves an external URL into config.json
-# but the omni-api PM2 process still tries to start pgserve at boot, so
-# external Postgres did not work either. This image therefore builds and
-# runs `omni install`, but `omni-api` will sit in PM2 "waiting restart"
-# until one of the following is resolved:
-#   - Run Omni on the host (as the original nutrition design spec
-#     prescribed) and reach it from compose via host.docker.internal.
-#   - Build a custom non-root variant where bun's globals land under the
-#     non-root user's home and pgserve initdb succeeds.
-#   - Force Omni to skip pgserve entirely (no documented flag exists).
-#
-# See docs/specs/2026-04-30-reproducible-setup-design.md §4.1 risks table.
+# Omni image — install the CLI via the repo-local installer wrapper.
+FROM debian:bookworm-slim
 
-FROM oven/bun:1
+USER root
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
-        curl ca-certificates \
+        bash \
+        ca-certificates \
+        curl \
+        nodejs \
+        passwd \
+        tar \
+        unzip \
     && rm -rf /var/lib/apt/lists/*
 
-RUN bun add -g @automagik/omni pm2
+RUN useradd --uid 1001 --create-home --shell /bin/sh omni || true
 
-COPY entrypoint.sh /usr/local/bin/omni-entrypoint
-RUN chmod +x /usr/local/bin/omni-entrypoint
+USER omni
+
+ENV HOME=/home/omni
+ENV PATH=/home/omni/.local/bin:/home/omni/.bun/bin:${PATH}
+
+COPY scripts/omni/install.sh /tmp/omni-install.sh
+RUN bash /tmp/omni-install.sh
+
+COPY omni/entrypoint.sh /usr/local/bin/omni-entrypoint
+USER root
+RUN chmod +x /usr/local/bin/omni-entrypoint /tmp/omni-install.sh
 
 EXPOSE 8882 4222
 

@@ -36,7 +36,7 @@ TACO dataset. Subsequent runs skip seeding.
 
 ```bash
 # 1. Create a WhatsApp instance inside Omni (one-time)
-docker compose exec omni omni channels add --type whatsapp
+docker compose exec omni omni channels add whatsapp-baileys
 
 # 2. Capture the instance id
 docker compose exec omni omni instances list

@@ -1,14 +1,15 @@
 #!/bin/sh
-# Provision Omni's bundled services and stay foreground. See Dockerfile
-# header for the known root/initdb issue.
+# Fix the persisted config volume ownership before dropping privileges, then
+# provision Omni and keep PM2 in the foreground.
 set -e
 
-omni install \
-    --port "${API_PORT:-8882}" \
-    ${OMNI_API_KEY:+--api-key "$OMNI_API_KEY"}
+mkdir -p /home/omni/.omni
+chown -R omni:omni /home/omni/.omni /home/omni/.bun /home/omni/.local 2>/dev/null || true
+export PATH="/home/omni/.local/bin:/home/omni/.bun/bin:$PATH"
 
+exec su omni -s /bin/sh -c "
+export PATH=/home/omni/.local/bin:/home/omni/.bun/bin:\$PATH
+omni install --port \"${API_PORT:-8882}\" ${OMNI_API_KEY:+--api-key \"$OMNI_API_KEY\"}
 omni start
-
-# Tail PM2 logs so PID 1 stays alive and logs surface in
-# `docker compose logs omni`.
 exec pm2 logs --raw
+"
