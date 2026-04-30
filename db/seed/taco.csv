@@ -1,0 +1,154 @@
+name,calories,protein,carbs,fat
+Arroz branco cozido,128,2.5,28.1,0.2
+Arroz integral cozido,124,2.6,25.8,1.0
+Arroz parboilizado cozido,130,2.7,27.8,0.4
+Feijão carioca cozido,76,4.8,13.6,0.5
+Feijão preto cozido,77,4.5,14.0,0.5
+Feijão branco cozido,111,7.0,20.0,0.5
+Feijão fradinho cozido,96,6.7,17.0,0.5
+Lentilha cozida,111,9.0,19.7,0.4
+Grão-de-bico cozido,164,8.9,27.4,2.6
+Ervilha cozida,79,6.0,13.8,0.4
+Soja cozida,141,12.7,11.1,6.0
+Frango grelhado,219,32.0,0.0,9.7
+Peito de frango grelhado,159,32.0,0.0,2.7
+Frango assado,190,25.0,0.0,9.5
+Frango cozido,210,27.7,0.0,10.4
+Coxinha de frango frita,299,13.2,22.6,17.2
+Frango a passarinho frito,299,26.1,5.1,19.5
+Strogonoff de frango,135,12.0,5.0,7.3
+Carne bovina grelhada,219,28.0,0.0,11.2
+Patinho grelhado,196,28.5,0.0,9.0
+Alcatra grelhada,226,28.0,0.0,12.5
+Contrafilé grelhado,258,26.0,0.0,16.5
+Acém cozido,193,22.4,0.0,10.8
+Carne moída refogada,241,19.4,0.0,17.6
+Picanha grelhada,315,25.4,0.0,23.4
+Costela bovina assada,290,20.0,0.0,23.0
+Filé mignon grelhado,195,29.5,0.0,8.0
+Bisteca suína grelhada,226,20.0,0.0,15.5
+Lombo suíno assado,218,22.7,0.0,13.4
+Pernil suíno assado,280,22.2,0.0,20.7
+Linguiça calabresa frita,314,14.7,2.2,27.8
+Salsicha cozida,260,11.7,2.5,22.7
+Presunto cozido,145,18.0,1.5,7.5
+Mortadela,262,12.0,3.0,23.0
+Hambúrguer bovino,265,17.3,5.5,20.1
+Filé de tilápia grelhado,96,20.1,0.0,1.7
+Salmão grelhado,206,20.4,0.0,13.4
+Atum em conserva,132,28.0,0.0,1.9
+Sardinha em conserva,208,24.1,0.0,11.5
+Camarão cozido,99,20.9,0.0,1.5
+Bacalhau cozido,163,24.6,0.0,6.8
+Ovo cozido,155,12.6,1.1,10.6
+Ovo mexido,148,10.0,1.2,11.3
+Ovo estrelado,196,12.5,0.4,15.6
+Omelete simples,154,10.8,1.0,11.8
+Pão francês,299,8.0,58.6,3.1
+Pão integral,253,9.4,47.5,3.1
+Pão de forma branco,265,8.0,50.0,3.5
+Pão de queijo,311,7.3,42.0,12.1
+Tapioca,349,0.4,86.8,0.0
+Cuscuz nordestino cozido,164,3.2,36.0,1.0
+Cuscuz de milho,343,7.8,73.5,1.9
+Farofa de manteiga,383,3.0,72.0,9.7
+Farinha de mandioca torrada,364,1.4,88.6,0.4
+Macarrão cozido,149,5.0,30.0,0.9
+Macarrão integral cozido,151,5.7,29.5,1.2
+Polenta cozida,70,1.7,15.0,0.4
+Batata cozida,82,1.9,18.5,0.1
+Batata frita,292,3.6,37.8,14.6
+Batata doce cozida,77,1.2,17.6,0.1
+Mandioca cozida,125,0.8,29.8,0.1
+Mandioquinha cozida,80,1.5,18.0,0.1
+Inhame cozido,116,2.0,27.7,0.1
+Milho verde cozido,109,2.9,20.1,2.2
+Banana nanica,92,1.3,23.8,0.1
+Banana prata,98,1.4,26.0,0.1
+Maçã,56,0.3,15.2,0.1
+Laranja,48,0.9,12.3,0.1
+Mamão papaia,40,0.5,10.4,0.1
+Melancia,33,0.8,7.7,0.2
+Manga,64,0.5,17.0,0.3
+Abacate,96,1.2,6.0,8.4
+Uva,69,0.6,17.1,0.1
+Morango,30,0.7,7.0,0.3
+Pera,55,0.4,14.9,0.1
+Pêssego,43,1.1,9.9,0.1
+Abacaxi,48,0.9,12.1,0.1
+Caju,43,1.1,10.0,0.2
+Goiaba,54,2.3,12.0,0.5
+Maracujá,68,2.0,13.0,0.7
+Melão,35,0.9,8.5,0.2
+Alface,13,1.3,2.1,0.2
+Tomate,15,1.0,3.1,0.2
+Pepino,13,0.5,3.1,0.1
+Cenoura crua,41,0.9,9.6,0.2
+Beterraba cozida,43,1.9,9.0,0.1
+Brócolis cozido,25,2.7,3.3,0.4
+Couve refogada,46,3.1,6.5,0.8
+Espinafre cozido,24,2.9,3.5,0.4
+Chuchu cozido,19,0.5,4.5,0.1
+Abobrinha cozida,15,0.9,3.0,0.1
+Couve-flor cozida,18,1.4,3.6,0.1
+Vagem cozida,25,1.5,5.3,0.1
+Quiabo cozido,25,1.5,5.0,0.2
+Jiló cozido,18,0.9,3.5,0.2
+Maxixe cozido,18,1.0,3.5,0.2
+Pimentão verde,24,1.3,5.5,0.2
+Berinjela cozida,24,0.9,5.5,0.2
+Cebola crua,40,1.2,9.6,0.1
+Alho cru,149,6.4,33.1,0.5
+Abóbora cozida,26,1.0,6.5,0.1
+Leite integral,61,3.2,4.7,3.3
+Leite semidesnatado,48,3.4,4.9,1.6
+Leite desnatado,35,3.5,5.0,0.1
+Iogurte natural integral,61,3.5,4.9,3.1
+Iogurte natural desnatado,42,4.0,5.7,0.1
+Queijo mussarela,295,22.2,2.4,22.0
+Queijo prato,360,22.4,1.7,29.8
+Queijo minas frescal,264,17.4,3.2,20.8
+Queijo cottage,98,11.1,3.4,4.3
+Requeijão cremoso,247,9.7,3.2,22.5
+Manteiga,726,0.9,0.1,80.0
+Margarina,722,0.1,0.4,80.0
+Azeite de oliva,884,0.0,0.0,100.0
+Óleo de soja,884,0.0,0.0,100.0
+Óleo de coco,862,0.0,0.0,100.0
+Açúcar refinado,387,0.0,99.9,0.0
+Açúcar mascavo,376,0.5,97.3,0.1
+Mel,309,0.4,84.0,0.0
+Amendoim torrado,592,26.0,18.0,48.0
+Castanha-do-pará,643,14.0,11.7,63.5
+Castanha de caju torrada,570,15.3,32.7,45.3
+Amêndoa,597,21.3,17.9,50.6
+Granola,394,8.9,65.0,11.4
+Aveia em flocos,394,13.9,66.6,8.5
+Farelo de aveia,246,17.3,66.2,7.0
+Biscoito integral,415,9.6,68.0,11.8
+Biscoito cream cracker,434,8.5,68.5,14.6
+Chocolate ao leite,541,7.8,57.0,31.0
+Chocolate meio amargo,557,4.9,51.0,38.0
+Sorvete de creme,201,3.4,23.6,10.6
+Pizza margherita,234,10.0,31.0,8.0
+Feijoada,107,7.6,8.4,4.6
+Feijão tropeiro,195,9.7,24.3,6.2
+Moqueca de peixe,142,14.0,4.5,8.0
+Bobó de camarão,153,10.2,12.3,7.1
+Caldo de feijão,52,3.2,7.8,1.0
+Sopa de legumes,35,1.5,6.5,0.5
+Creme de milho,63,1.7,13.0,0.5
+Vitamina de banana com leite,89,3.0,17.0,1.5
+Suco de laranja natural,44,0.6,11.0,0.1
+Suco de maracujá natural,40,0.7,10.0,0.1
+Café com leite,30,1.9,3.0,1.1
+Café puro,2,0.1,0.4,0.0
+Refrigerante cola,39,0.0,9.8,0.0
+Cerveja,43,0.4,3.5,0.0
+Whey protein,380,75.0,8.0,5.0
+Frango desfiado refogado,165,26.7,1.0,6.0
+Carne assada,229,27.0,0.0,12.8
+Peixe grelhado,120,22.0,0.0,3.5
+Maionese,680,1.1,2.7,75.0
+Catchup,112,1.7,26.0,0.5
+Mostarda,67,3.7,5.8,4.0
