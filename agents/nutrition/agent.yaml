@@ -1,5 +1,2 @@
 promptMode: system
 model: sonnet
-description: Nutrition tracking agent — logs meals, tracks macros, weekly history via TACO database
-sdk:
-  permissionMode: bypassPermissions
