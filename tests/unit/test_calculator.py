@@ -28,8 +28,6 @@ def test_male_gain_adds_300():
 def test_macro_split_sums_to_total_calories():
     targets = calculate_targets(75, 178, 32, "M", "maintain")
     macro_kcal = (
-        targets["target_protein"] * 4
-        + targets["target_carbs"] * 4
-        + targets["target_fat"] * 9
+        targets["target_protein"] * 4 + targets["target_carbs"] * 4 + targets["target_fat"] * 9
     )
     assert abs(macro_kcal - targets["target_calories"]) < 1.0

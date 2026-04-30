@@ -58,8 +58,7 @@ def test_seed_preserves_known_food(seed_module, db_url):
     try:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT calories, protein, carbs, fat FROM taco_foods"
-                " WHERE name ILIKE %s",
+                "SELECT calories, protein, carbs, fat FROM taco_foods WHERE name ILIKE %s",
                 ("%arroz%branco%cozido%",),
             )
             row = cur.fetchone()
@@ -92,9 +91,7 @@ def test_seed_skips_when_already_populated(seed_module, db_url):
         with conn.cursor() as cur:
             cur.execute("SELECT count(*) FROM taco_foods")
             assert cur.fetchone()[0] == 1
-            cur.execute(
-                "SELECT name FROM taco_foods WHERE id = %s", (9999,)
-            )
+            cur.execute("SELECT name FROM taco_foods WHERE id = %s", (9999,))
             assert cur.fetchone()[0] == "Synthetic placeholder"
     finally:
         conn.close()

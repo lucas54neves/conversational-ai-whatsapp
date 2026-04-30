@@ -2,9 +2,7 @@ from datetime import date, timedelta
 
 import psycopg2
 import pytest
-
 from nutrition_tools import tools
-
 
 PHONE = "5511900000001"
 
@@ -24,11 +22,11 @@ def test_save_user_profile_validates_ranges():
     with pytest.raises(ValueError):
         tools.save_user_profile(PHONE, 10, 180, 30, "M", "maintain")  # weight too low
     with pytest.raises(ValueError):
-        tools.save_user_profile(PHONE, 80, 80, 30, "M", "maintain")   # height too low
+        tools.save_user_profile(PHONE, 80, 80, 30, "M", "maintain")  # height too low
     with pytest.raises(ValueError):
         tools.save_user_profile(PHONE, 80, 180, 30, "X", "maintain")  # bad sex
     with pytest.raises(ValueError):
-        tools.save_user_profile(PHONE, 80, 180, 30, "M", "bulk")      # bad goal
+        tools.save_user_profile(PHONE, 80, 180, 30, "M", "bulk")  # bad goal
 
 
 def test_save_meals_inserts_proportionally():

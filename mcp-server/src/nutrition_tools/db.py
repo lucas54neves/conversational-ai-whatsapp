@@ -1,7 +1,6 @@
 import os
 from contextlib import contextmanager
 
-import psycopg2
 from psycopg2.pool import ThreadedConnectionPool
 
 _pool: ThreadedConnectionPool | None = None
