@@ -28,4 +28,5 @@ if [ -n "$PHONE" ] && [ "$PHONE" != "null" ]; then
 fi
 
 log "opening WhatsApp QR (scan from the WhatsApp app: Linked Devices)"
+omni instances connect --force-new-qr "$INSTANCE_ID"
 omni instances qr "$INSTANCE_ID"
