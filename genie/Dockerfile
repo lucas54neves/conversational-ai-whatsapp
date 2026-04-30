@@ -14,7 +14,7 @@ RUN apt-get update \
         ca-certificates tmux git \
     && rm -rf /var/lib/apt/lists/*
 
-RUN npm install -g automagik-genie@latest
+RUN npm install -g automagik-genie@latest adm-zip
 
 WORKDIR /app
 

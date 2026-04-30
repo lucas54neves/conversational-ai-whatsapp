@@ -21,11 +21,11 @@ fi
 if [[ -z "${INSTANCE_ID:-}" ]]; then
     echo "[pair] INSTANCE_ID is not set."
     echo "[pair] listing existing instances; create one with:"
-    echo "[pair]   docker compose exec omni omni channels add --type whatsapp"
-    docker compose exec -T omni omni instances list
+    echo "[pair]   docker compose exec -T omni sh -lc 'export PATH=/home/omni/.local/bin:/home/omni/.bun/bin:\$PATH; omni channels add whatsapp-baileys'"
+    docker compose exec -T omni sh -lc 'export PATH=/home/omni/.local/bin:/home/omni/.bun/bin:$PATH; omni instances list'
     echo "[pair] export INSTANCE_ID=<id> and re-run this script"
     exit 0
 fi
 
 echo "[pair] streaming QR for instance ${INSTANCE_ID} — scan with WhatsApp"
-docker compose exec omni omni instances qr "${INSTANCE_ID}" --watch
+docker compose exec -T omni sh -lc "export PATH=/home/omni/.local/bin:/home/omni/.bun/bin:\$PATH; omni instances qr \"${INSTANCE_ID}\""

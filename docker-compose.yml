@@ -73,9 +73,8 @@ services:
       NATS_URL: nats://omni:4222
     volumes:
       - ./agents:/app/agents
-      - ./.genie:/app/.genie
+      - genie_state:/app/.genie
       - ./.mcp.json:/app/.mcp.json:ro
-      - genie_state:/var/lib/genie
     restart: unless-stopped
 
 volumes:
