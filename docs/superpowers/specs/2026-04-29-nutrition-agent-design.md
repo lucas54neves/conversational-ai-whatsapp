@@ -229,52 +229,83 @@ conversational-ai-whatsapp/
 
 ---
 
-## 8. Infraestrutura (Docker Compose)
+## 8. Infraestrutura
+
+### Serviços no host (instaladores oficiais)
+
+Genie e Omni não publicam imagens Docker — são instalados diretamente no host:
+
+```bash
+# Genie (binário verificado via cosign + SLSA)
+curl -fsSL https://get.automagik.dev/genie | bash
+
+# Omni (Node.js/Bun, gerencia PostgreSQL + NATS via PM2)
+bun add -g @automagik/omni
+omni install
+```
+
+Omni sobe seu próprio PostgreSQL (porta 8432), NATS (porta 4222) e API (porta 8882) via PM2.
+
+### Docker Compose (apenas nossos serviços)
 
 ```yaml
 services:
   postgres:
     image: postgres:16
-    # volumes: dados persistentes
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: nutrition
+      POSTGRES_USER: nutrition
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
 
   seed:
     build: ./db/seed
-    # roda seed.py uma vez e sai
     depends_on: [postgres]
+    environment:
+      DATABASE_URL: postgresql://nutrition:${POSTGRES_PASSWORD}@postgres:5432/nutrition
 
   mcp-server:
     build: ./mcp-server
+    ports:
+      - "8000:8000"
     depends_on: [postgres]
     environment:
-      DATABASE_URL: ...
+      DATABASE_URL: postgresql://nutrition:${POSTGRES_PASSWORD}@postgres:5432/nutrition
 
-  genie:
-    image: automagik/genie
-    volumes:
-      - ./agent/CLAUDE.md:/app/CLAUDE.md
-    environment:
-      ANTHROPIC_API_KEY: ...
-      MCP_SERVER_URL: http://mcp-server:8000
-    depends_on: [mcp-server]
-
-  omni:
-    image: automagik/omni
-    environment:
-      AGENT_WEBHOOK_URL: http://genie:...
-    depends_on: [genie]
+volumes:
+  postgres_data:
 ```
 
-**Variáveis de ambiente (`.env`):**
+### Variáveis de ambiente (`.env`)
+
 ```
 ANTHROPIC_API_KEY=
-DATABASE_URL=postgresql://user:pass@postgres:5432/nutrition
+POSTGRES_PASSWORD=
+MCP_SERVER_URL=http://localhost:8000   # usado na config do Genie
 ```
 
-**Setup em 3 comandos:**
+### Setup completo
+
 ```bash
-cp .env.example .env        # preencher ANTHROPIC_API_KEY
+# 1. Instalar Genie e Omni no host
+curl -fsSL https://get.automagik.dev/genie | bash
+bun add -g @automagik/omni && omni install
+
+# 2. Subir nossos serviços (PostgreSQL + seed + MCP server)
+cp .env.example .env        # preencher ANTHROPIC_API_KEY e POSTGRES_PASSWORD
 docker compose up seed      # importa TACO (roda uma vez)
-docker compose up           # sobe todos os serviços
+docker compose up -d mcp-server postgres
+
+# 3. Configurar Genie para usar o MCP server e iniciar
+# (configuração via agent/CLAUDE.md + variáveis de ambiente)
+genie start
+
+# 4. Conectar Omni ao Genie
+omni config set agent_url http://localhost:<genie_port>
+omni start
 ```
 
 ---
