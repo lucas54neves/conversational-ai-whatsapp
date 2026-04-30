@@ -39,6 +39,32 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Prepend a directory to PATH if it exists and isn't already present. Exported
+# so child processes (e.g. each run_step in setup.sh) inherit the update.
+prepend_path() {
+    local dir="$1"
+    [ -d "$dir" ] || return 0
+    case ":$PATH:" in
+        *":$dir:"*) return 0 ;;
+    esac
+    export PATH="$dir:$PATH"
+}
+
+# Ensure user-local bin directories where setup-installed CLIs land are on PATH.
+# The genie installer drops its binary in bun's global bin (or npm's, as a
+# fallback), neither of which is exported by default in non-interactive shells.
+ensure_user_bins_on_path() {
+    prepend_path "${BUN_INSTALL:-$HOME/.bun}/bin"
+    prepend_path "$HOME/.local/bin"
+    if command_exists npm; then
+        local npm_prefix
+        npm_prefix=$(npm config get prefix 2>/dev/null || true)
+        [ -n "$npm_prefix" ] && prepend_path "$npm_prefix/bin"
+    fi
+}
+
+ensure_user_bins_on_path
+
 wait_for_tcp() {
     local host="$1"
     local port="$2"
