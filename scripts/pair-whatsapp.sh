@@ -41,4 +41,24 @@ fi
 
 log "opening WhatsApp QR (scan from the WhatsApp app: Linked Devices)"
 omni instances connect --force-new-qr "$INSTANCE_ID"
+
+# After connect, the instance is still in "connecting" — the QR code takes a
+# few seconds to be generated. Poll until QR is available before handing off
+# to the auto-refreshing watcher, otherwise it gives up after a few retries
+# and exits with "No QR code available".
+log "waiting for QR code to be generated"
+QR_READY=0
+for _ in $(seq 1 30); do
+    QR_OUTPUT=$(omni instances qr --no-watch --base64 "$INSTANCE_ID" 2>&1 || true)
+    if [ -n "$QR_OUTPUT" ] && ! printf '%s' "$QR_OUTPUT" | grep -q "No QR code available"; then
+        QR_READY=1
+        break
+    fi
+    sleep 2
+done
+if [ "$QR_READY" -ne 1 ]; then
+    omni instances status "$INSTANCE_ID" || true
+    die "QR code not generated after 60s. Check the status above and 'omni instances get $INSTANCE_ID'."
+fi
+
 omni instances qr "$INSTANCE_ID"
