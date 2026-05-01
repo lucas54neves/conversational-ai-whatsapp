@@ -13,6 +13,8 @@ test = [
     "pytest>=7.0",
     "testcontainers[postgres]>=4.0",
     "psycopg2-binary>=2.9.0",
+    "anthropic>=0.40",
+    "pyyaml>=6.0",
 ]
 dev = [
     "pre-commit>=3.7",
@@ -26,6 +28,8 @@ packages = []
 testpaths = ["tests"]
 markers = [
     "integration: requires a postgres container (started by tests/conftest.py)",
+    "agent_mock: agent loop tests with FakeAnthropicClient (deterministic)",
+    "agent_eval: agent loop tests against the real Anthropic API (costs money, opt-in)",
 ]
 
 [tool.ruff]
