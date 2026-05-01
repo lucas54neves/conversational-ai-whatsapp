@@ -19,6 +19,7 @@ from typing import Any
 
 import yaml
 from nutrition_tools import tools as _tools
+from nutrition_tools.errors import ToolError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 AGENT_DIR = PROJECT_ROOT / "agents" / "nutrition"
@@ -181,12 +182,21 @@ class RunResult:
     turns: int = 0
 
 
-def _execute_tool(name: str, args: dict) -> Any:
+def _execute_tool(name: str, args: dict) -> tuple[Any, bool]:
+    """Run a tool and return (content, is_error).
+
+    `is_error=True` mirrors FastMCP's wire shape for a ToolError — the
+    tool_result block carries the string "code: message" and sets
+    isError on the response. Other unexpected exceptions stay in the
+    legacy generic dict so existing tests continue to pass.
+    """
     fn = TOOL_REGISTRY[name]
     try:
-        return fn(**args)
+        return fn(**args), False
+    except ToolError as exc:
+        return str(exc), True
     except Exception as exc:
-        return {"error": type(exc).__name__, "message": str(exc)}
+        return {"error": type(exc).__name__, "message": str(exc)}, False
 
 
 def run_agent(
@@ -255,14 +265,17 @@ def run_agent(
                 if btype == "tool_use":
                     args = _canonicalize(dict(block.input))
                     result.tool_calls.append(ToolCall(name=block.name, args=args))
-                    tool_output = _execute_tool(block.name, dict(block.input))
-                    tool_results.append(
-                        {
-                            "type": "tool_result",
-                            "tool_use_id": block.id,
-                            "content": json.dumps(tool_output, default=str),
-                        }
-                    )
+                    tool_output, is_error = _execute_tool(block.name, dict(block.input))
+                    payload: dict[str, Any] = {
+                        "type": "tool_result",
+                        "tool_use_id": block.id,
+                        "content": tool_output
+                        if is_error
+                        else json.dumps(tool_output, default=str),
+                    }
+                    if is_error:
+                        payload["is_error"] = True
+                    tool_results.append(payload)
                 elif btype == "text":
                     result.final_text = block.text
 
