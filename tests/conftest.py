@@ -27,7 +27,13 @@ def pytest_collection_modifyitems(config, items):
 
 
 def _has_integration_items(session) -> bool:
-    return any("tests/integration/" in item.nodeid.replace(os.sep, "/") for item in session.items)
+    return any(
+        any(
+            prefix in item.nodeid.replace(os.sep, "/")
+            for prefix in ("tests/integration/", "tests/agent/")
+        )
+        for item in session.items
+    )
 
 
 @pytest.fixture(scope="session")
