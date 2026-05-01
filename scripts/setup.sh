@@ -33,8 +33,19 @@ bootstrap_app_user() {
     log "chowning $REPO_ROOT to $APP_USER"
     chown -R "$APP_USER:$APP_USER" "$REPO_ROOT"
 
+    # If $APP_USER can't traverse to the repo (typical when it lives under
+    # /root/), relocate it to $APP_USER's home so the install steps can run.
     if ! su - "$APP_USER" -c "test -r '$SCRIPTS_DIR/setup.sh'"; then
-        die "$APP_USER cannot read $SCRIPTS_DIR — move the repo to a path traversable by $APP_USER (e.g. /home/$APP_USER/) and re-run."
+        local app_home target
+        app_home=$(getent passwd "$APP_USER" | cut -d: -f6)
+        target="$app_home/$(basename "$REPO_ROOT")"
+        if [ -e "$target" ]; then
+            die "$APP_USER cannot reach $REPO_ROOT and $target already exists — resolve manually."
+        fi
+        log "relocating repo: $REPO_ROOT -> $target"
+        mv "$REPO_ROOT" "$target"
+        chown -R "$APP_USER:$APP_USER" "$target"
+        SCRIPTS_DIR="$target/scripts"
     fi
 
     log "re-executing setup.sh as $APP_USER"
