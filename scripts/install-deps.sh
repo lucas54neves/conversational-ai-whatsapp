@@ -29,7 +29,22 @@ check_node_or_bun() {
     fi
 }
 
+# Docker Compose v2 ships as a CLI plugin, not a standalone binary, so probe
+# the subcommand instead of using command_exists.
+check_docker_compose() {
+    if ! command_exists docker; then
+        return 0  # `check docker` above already flagged this case.
+    fi
+    if docker compose version >/dev/null 2>&1; then
+        log "found: docker compose"
+    else
+        printf 'missing: docker compose (v2 plugin)\n  apt:  sudo apt install -y docker-compose-plugin\n  brew: included with Docker Desktop\n' >&2
+        missing=$((missing + 1))
+    fi
+}
+
 check docker "sudo apt install -y docker.io"     "brew install --cask docker"
+check_docker_compose
 check_node_or_bun
 check tmux   "sudo apt install -y tmux"          "brew install tmux"
 check git    "sudo apt install -y git"           "brew install git"
