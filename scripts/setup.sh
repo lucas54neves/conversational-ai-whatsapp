@@ -2,12 +2,48 @@
 # Top-level orchestrator. Runs every install/configure step in order; aborts
 # on the first failure. Each sub-script is itself idempotent, so re-running
 # this on a partially-configured machine converges on the final state.
+#
+# When invoked as root (e.g. fresh VPS), bootstraps a dedicated non-root user
+# (default: nutrition; override with APP_USER env var) and re-executes itself
+# as that user. Genie's embedded Postgres refuses uid 0, so the install steps
+# cannot run as root.
 
 source "$(dirname "$0")/lib/common.sh"
 
-require_non_root
-
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
+APP_USER="${APP_USER:-nutrition}"
+
+bootstrap_app_user() {
+    log "running as root — bootstrapping app user '$APP_USER'"
+
+    if ! id "$APP_USER" >/dev/null 2>&1; then
+        log "creating user: $APP_USER"
+        useradd --create-home --shell /bin/bash "$APP_USER"
+    else
+        log "user $APP_USER already exists"
+    fi
+
+    if getent group docker >/dev/null 2>&1; then
+        log "adding $APP_USER to docker group"
+        usermod -aG docker "$APP_USER"
+    else
+        log "docker group not found — install-deps.sh will flag missing docker"
+    fi
+
+    log "chowning $REPO_ROOT to $APP_USER"
+    chown -R "$APP_USER:$APP_USER" "$REPO_ROOT"
+
+    if ! su - "$APP_USER" -c "test -r '$SCRIPTS_DIR/setup.sh'"; then
+        die "$APP_USER cannot read $SCRIPTS_DIR — move the repo to a path traversable by $APP_USER (e.g. /home/$APP_USER/) and re-run."
+    fi
+
+    log "re-executing setup.sh as $APP_USER"
+    exec su - "$APP_USER" -c "$SCRIPTS_DIR/setup.sh"
+}
+
+if [ "$(id -u)" -eq 0 ]; then
+    bootstrap_app_user
+fi
 
 run_step() {
     local script="$1"
