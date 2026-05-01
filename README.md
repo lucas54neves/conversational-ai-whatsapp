@@ -166,6 +166,47 @@ The integration layer needs a working Docker socket. If you can run
 `.github/workflows/test.yml` runs the same `pytest -v` command on
 every push and pull request via GitHub Actions.
 
+### Agent reasoning tests
+
+A third tier under `tests/agent/` exercises the nutrition agent's
+tool-call decisions. It is split into two layers:
+
+- **Mock tier** (`tests/agent/mock/`) — drives the agent loop with
+  `FakeAnthropicClient`, asserts on exact tool-call sequences and
+  the resulting `users` / `meal_logs` state. No API key, no real
+  LLM cost. Runs in the default `pytest` invocation, in the
+  pre-commit pytest hook, and in `.github/workflows/test.yml`.
+- **Eval tier** (`tests/agent/eval/`) — drives the same harness
+  against the real Anthropic API using the production system prompt
+  and model. Cases live in `tests/agent/eval/cases.yaml` (one YAML
+  entry per scenario). The runner records pass/fail per case and
+  fails the suite when the aggregate pass rate drops below
+  `PASS_RATE_THRESHOLD = 0.85` (declared at the top of
+  `tests/agent/eval/test_runner.py`).
+
+```bash
+pytest tests/agent/mock/                          # mock tier (default)
+ANTHROPIC_API_KEY=... pytest -m agent_eval -v     # eval tier (real API)
+```
+
+Without `ANTHROPIC_API_KEY` the eval tier skips cleanly, so the
+default `pytest` invocation always works offline.
+
+The eval tier also runs nightly via `.github/workflows/eval.yml`
+(`workflow_dispatch` + `cron: "0 6 * * *"`). Results appear under
+the Actions tab; failures notify by GitHub's standard email path.
+The workflow needs the repo secret `ANTHROPIC_API_KEY` to be set
+before it can produce a green run.
+
+Adding new cases:
+
+- **Mock**: add a function to the relevant `tests/agent/mock/test_*.py`
+  following the existing pattern (script `FakeAnthropicClient`,
+  assert `result.tool_calls` and DB state).
+- **Eval**: append a YAML entry to `tests/agent/eval/cases.yaml`. No
+  code change required. Tune `PASS_RATE_THRESHOLD` only as an
+  explicit PR.
+
 ## Git hooks
 
 The repo uses [`pre-commit`](https://pre-commit.com/) to run lint,
