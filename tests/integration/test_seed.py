@@ -59,7 +59,7 @@ def test_seed_preserves_known_food(seed_module, db_url):
         with conn.cursor() as cur:
             cur.execute(
                 "SELECT calories, protein, carbs, fat FROM taco_foods WHERE name ILIKE %s",
-                ("%arroz%branco%cozido%",),
+                ("%arroz%cozido%",),
             )
             row = cur.fetchone()
     finally:
