@@ -38,7 +38,7 @@ System packages on the host:
 
 - Docker (with the `docker compose` plugin)
 - Node.js 18+ **or** Bun
-- `tmux`, `git`, `gh`, `jq`, `yq`, `curl`
+- `tmux`, `git`, `gh`, `jq`, `yq`, `curl`, `unzip`
 
 Install hints:
 
@@ -51,6 +51,7 @@ Install hints:
 | gh     | see https://cli.github.com                | `brew install gh`             |
 | jq     | `sudo apt install -y jq`                  | `brew install jq`             |
 | yq     | `sudo snap install yq`                    | `brew install yq`             |
+| unzip  | `sudo apt install -y unzip`               | `brew install unzip`          |
 
 You also need an Anthropic API key **or** an active `claude login`
 session. If you set `ANTHROPIC_API_KEY` in `.env`, Genie picks it up at

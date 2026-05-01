@@ -37,6 +37,7 @@ check gh     "see https://cli.github.com"        "brew install gh"
 check jq     "sudo apt install -y jq"            "brew install jq"
 check yq     "sudo curl -L -o /usr/local/bin/yq https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64 && sudo chmod +x /usr/local/bin/yq" "brew install yq"
 check curl   "sudo apt install -y curl"          "brew install curl"
+check unzip  "sudo apt install -y unzip"         "brew install unzip"
 
 if [ "$missing" -gt 0 ]; then
     die "$missing required dependency(ies) missing"
