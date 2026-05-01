@@ -150,9 +150,15 @@ The integration layer spins up `postgres:16-alpine` automatically and
 tears it down at the end of the session — no `TEST_DATABASE_URL` to
 export and nothing to start by hand.
 
+The venv is created directly from `pyproject.toml` — the `test` extra
+under `[project.optional-dependencies]` declares pytest, testcontainers,
+psycopg2, anthropic, and pyyaml, and the `nutrition-tools` MCP package is
+pulled in via the local path dependency declared at the project root.
+
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e .[test]
+pip install --upgrade pip
+pip install -e ".[test]"
 
 pytest tests/unit/         # fast loop, no Docker
 pytest tests/integration/  # spins up an ephemeral Postgres container
@@ -160,8 +166,20 @@ pytest                     # full suite
 pytest -m "not integration"  # shorthand for unit-only
 ```
 
+If you don't want to activate the venv, call the binaries directly:
+`./.venv/bin/pytest`.
+
 The integration layer needs a working Docker socket. If you can run
 `docker compose` you are already set.
+
+If `pytest` fails at collection with `ModuleNotFoundError: No module
+named 'nutrition_tools.errors'` (or a similarly missing submodule),
+clear a stale build cache from a previous install:
+
+```bash
+rm -rf mcp-server/build
+pip install -e ./mcp-server  # reinstall the MCP server in editable mode
+```
 
 `.github/workflows/test.yml` runs the same `pytest -v` command on
 every push and pull request via GitHub Actions.
@@ -219,6 +237,7 @@ configuration lives in `.pre-commit-config.yaml`.
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
+pip install --upgrade pip
 pip install -e ".[test,dev]"
 pre-commit install
 pre-commit install --hook-type commit-msg
