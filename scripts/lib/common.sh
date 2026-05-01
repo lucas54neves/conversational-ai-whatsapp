@@ -39,6 +39,15 @@ command_exists() {
     command -v "$1" >/dev/null 2>&1
 }
 
+# Genie's embedded pgserve refuses to start under uid 0 (Postgres won't run as
+# root). Abort early with a clear message so users don't get a cryptic failure
+# halfway through setup. Set GENIE_ALLOW_ROOT=1 to bypass.
+require_non_root() {
+    if [ "$(id -u)" -eq 0 ] && [ "${GENIE_ALLOW_ROOT:-0}" != "1" ]; then
+        die "do not run as root: genie's embedded pgserve refuses uid 0. Re-run as a normal user (without sudo), or set GENIE_ALLOW_ROOT=1 to override."
+    fi
+}
+
 # Prepend a directory to PATH if it exists and isn't already present. Exported
 # so child processes (e.g. each run_step in setup.sh) inherit the update.
 prepend_path() {

@@ -5,6 +5,8 @@
 
 source "$(dirname "$0")/lib/common.sh"
 
+require_non_root
+
 SCRIPTS_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 run_step() {

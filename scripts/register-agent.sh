@@ -5,6 +5,8 @@
 
 source "$(dirname "$0")/lib/common.sh"
 
+require_non_root
+
 cd "$REPO_ROOT"
 
 command_exists genie || die "genie CLI not found. Run scripts/install-genie.sh first."
