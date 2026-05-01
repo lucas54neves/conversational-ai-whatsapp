@@ -5,11 +5,16 @@ from mcp.server.fastmcp import FastMCP
 
 from . import db
 from . import tools as t
+from .errors import mcp_safe
 
 mcp = FastMCP("nutrition-tools")
 
 
+# `@mcp_safe` must remain BELOW `@mcp.tool()` on every tool: Python applies
+# decorators bottom-up, so `mcp.tool` registers the already-wrapped function.
+# Reversing the order would let raw psycopg2 errors escape to the agent.
 @mcp.tool()
+@mcp_safe
 def search_food(query: str) -> list[dict]:
     """Search for foods in the TACO Brazilian food database.
 
@@ -20,6 +25,7 @@ def search_food(query: str) -> list[dict]:
 
 
 @mcp.tool()
+@mcp_safe
 def save_user_profile(
     phone: str,
     weight_kg: float,
@@ -38,6 +44,7 @@ def save_user_profile(
 
 
 @mcp.tool()
+@mcp_safe
 def get_user_profile(phone: str) -> dict | None:
     """Retrieve a user profile and daily targets.
 
@@ -47,6 +54,7 @@ def get_user_profile(phone: str) -> dict | None:
 
 
 @mcp.tool()
+@mcp_safe
 def save_meals(phone: str, items: list[dict]) -> list[dict]:
     """Log one or more meals atomically for a user.
 
@@ -60,6 +68,7 @@ def save_meals(phone: str, items: list[dict]) -> list[dict]:
 
 
 @mcp.tool()
+@mcp_safe
 def get_daily_summary(phone: str, date: str | None = None) -> dict | None:
     """Get a user's daily meal totals vs. targets.
 
@@ -71,6 +80,7 @@ def get_daily_summary(phone: str, date: str | None = None) -> dict | None:
 
 
 @mcp.tool()
+@mcp_safe
 def get_weekly_history(phone: str) -> list[dict] | None:
     """Get the last 7 days of daily summaries for a user.
 
