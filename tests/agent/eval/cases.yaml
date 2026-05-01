@@ -1,0 +1,166 @@
+# Eval-tier dataset for the nutrition agent.
+#
+# Each case has a unique `name`, a list of `conversation` user turns,
+# an optional `phone` (defaults to a synthesized value), and any
+# subset of the optional assertion fields:
+#   - expected_tools_subset: tool names that MUST be called (order-free)
+#   - forbidden_tools: tool names that must NOT be called
+#   - expected_db: predicates {meal_logs_count, kcal_range: [lo,hi], users_count}
+#   - expected_assistant_response_contains: case-insensitive substrings
+#   - max_turns: cap for the agent loop (default 10)
+#
+# Cases 1-10 mirror the mock-tier scenarios in natural language.
+# Cases 11-15 cover LLM-variability behaviors the mock tier cannot
+# meaningfully exercise.
+
+- name: onboarding_happy_path
+  phone: "+5511900000001"
+  conversation:
+    - "oi, quero começar"
+    - "70 kg"
+    - "175 cm"
+    - "30 anos"
+    - "M"
+    - "manter peso"
+  expected_tools_subset: [save_user_profile]
+  expected_db:
+    users_count: 1
+  expected_assistant_response_contains: ["metas"]
+
+- name: onboarding_rejects_invalid_weight
+  phone: "+5511900000002"
+  conversation:
+    - "oi"
+    - "5 kg"
+  forbidden_tools: [save_user_profile]
+  expected_db:
+    users_count: 0
+
+- name: meal_log_single_item
+  phone: "+5511900000003"
+  preseed_user: true
+  conversation:
+    - "comi 100g de arroz no almoço"
+    - "sim"
+  expected_tools_subset: [search_food, save_meals]
+  expected_db:
+    meal_logs_count: 1
+    kcal_range: [110, 160]
+
+- name: meal_log_multi_item_single_save
+  phone: "+5511900000004"
+  preseed_user: true
+  conversation:
+    - "comi 150g de arroz e 200g de frango"
+    - "sim"
+  expected_tools_subset: [search_food, save_meals]
+  expected_db:
+    meal_logs_count: 2
+    kcal_range: [550, 750]
+
+- name: meal_log_no_confirmation_no_save
+  phone: "+5511900000005"
+  preseed_user: true
+  conversation:
+    - "comi 100g de arroz"
+    - "ainda não, espera um pouco"
+  forbidden_tools: [save_meals]
+  expected_db:
+    meal_logs_count: 0
+
+- name: meal_log_cancellation
+  phone: "+5511900000006"
+  preseed_user: true
+  conversation:
+    - "comi 100g de arroz"
+    - "não"
+  forbidden_tools: [save_meals]
+  expected_db:
+    meal_logs_count: 0
+
+- name: meal_log_missing_quantity
+  phone: "+5511900000007"
+  preseed_user: true
+  conversation:
+    - "comi arroz"
+  forbidden_tools: [save_meals]
+  expected_assistant_response_contains: ["quanto"]
+  expected_db:
+    meal_logs_count: 0
+
+- name: daily_progress_query
+  phone: "+5511900000008"
+  preseed_user: true
+  preseed_meal:
+    food_id: 2
+    quantity_g: 100
+  conversation:
+    - "como estou hoje?"
+  expected_tools_subset: [get_daily_summary]
+  expected_assistant_response_contains: ["hoje"]
+
+- name: weekly_history_query
+  phone: "+5511900000009"
+  preseed_user: true
+  conversation:
+    - "minha semana"
+  expected_tools_subset: [get_weekly_history]
+
+- name: out_of_domain_redirect
+  phone: "+5511900000010"
+  preseed_user: true
+  conversation:
+    - "qual a capital da França?"
+  forbidden_tools: [search_food, save_meals, get_weekly_history]
+  expected_assistant_response_contains: ["registrar refeições"]
+
+# --- LLM-variability cases (mock tier cannot meaningfully cover) ---
+
+- name: code_switching_english_input
+  phone: "+5511900000011"
+  preseed_user: true
+  conversation:
+    - "had 100g of rice"
+    - "sim"
+  expected_tools_subset: [search_food, save_meals]
+  expected_db:
+    meal_logs_count: 1
+
+- name: implicit_quantity_asks_clarification
+  phone: "+5511900000012"
+  preseed_user: true
+  conversation:
+    - "uma colher de arroz"
+  forbidden_tools: [save_meals]
+  expected_assistant_response_contains: ["quanto", "g"]
+  expected_db:
+    meal_logs_count: 0
+
+- name: multi_turn_meal_split
+  phone: "+5511900000013"
+  preseed_user: true
+  conversation:
+    - "comi 150g de arroz"
+    - "e também 200g de frango"
+    - "sim"
+  expected_tools_subset: [search_food, save_meals]
+  expected_db:
+    meal_logs_count: 2
+
+- name: insidious_out_of_domain
+  phone: "+5511900000014"
+  preseed_user: true
+  conversation:
+    - "qual a melhor dieta para emagrecer?"
+  forbidden_tools: [save_meals, save_user_profile]
+  expected_assistant_response_contains: ["registrar"]
+
+- name: partial_onboarding
+  phone: "+5511900000015"
+  conversation:
+    - "tenho 30 anos, peso 70kg e sou homem"
+    - "175"
+    - "manter"
+  expected_tools_subset: [save_user_profile]
+  expected_db:
+    users_count: 1

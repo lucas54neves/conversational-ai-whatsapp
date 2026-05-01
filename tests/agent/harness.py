@@ -193,6 +193,7 @@ def run_agent(
     client,
     conversation: list[str],
     *,
+    user_phone: str | None = None,
     max_turns: int = 10,
     max_tokens: int = 2048,
 ) -> RunResult:
@@ -201,11 +202,23 @@ def run_agent(
     `conversation` is the sequence of user turns; between each, the
     assistant runs its tool-use loop until `stop_reason == "end_turn"`
     or `max_turns` is reached (across the entire conversation).
+
+    `user_phone`, when provided, is appended to the system prompt as a
+    session-context note so the model has a concrete value to pass
+    whenever a tool requires a `phone` argument. Mock-tier tests leave
+    it unset because they script the args directly.
     """
+    system_text = load_system_prompt()
+    if user_phone:
+        system_text = (
+            f"{system_text}\n\n## Session context\n"
+            f"The user's WhatsApp phone number is {user_phone}. "
+            f"Use this exact value whenever a tool requires a `phone` argument."
+        )
     system_blocks = [
         {
             "type": "text",
-            "text": load_system_prompt(),
+            "text": system_text,
             "cache_control": {"type": "ephemeral"},
         }
     ]
