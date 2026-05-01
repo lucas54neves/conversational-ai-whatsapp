@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 from .calculator import calculate_targets
 from .db import get_conn
@@ -209,7 +209,7 @@ def get_daily_summary(phone: str, date_str: str | None = None) -> dict | None:
     Returns None when the user has no profile, mirroring `get_user_profile`
     so the agent can route to onboarding without catching exceptions.
     """
-    target_date = date.fromisoformat(date_str) if date_str else date.today()
+    target_date = date.fromisoformat(date_str) if date_str else datetime.now(UTC).date()
 
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(
@@ -253,7 +253,7 @@ def get_weekly_history(phone: str) -> list[dict] | None:
 
     Returns None when the user has no profile.
     """
-    today = date.today()
+    today = datetime.now(UTC).date()
     start = today - timedelta(days=6)
 
     with get_conn() as conn, conn.cursor() as cur:

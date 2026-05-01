@@ -1,4 +1,4 @@
-from datetime import date, timedelta
+from datetime import UTC, datetime, timedelta
 
 import psycopg2
 import pytest
@@ -86,7 +86,7 @@ def test_get_weekly_history_returns_seven_days_or_none():
     tools.save_user_profile(PHONE, 80, 180, 30, "M", "maintain")
     history = tools.get_weekly_history(PHONE)
     assert len(history) == 7
-    today = date.today()
+    today = datetime.now(UTC).date()
     expected_dates = [(today - timedelta(days=i)).isoformat() for i in range(6, -1, -1)]
     assert [day["date"] for day in history] == expected_dates
 
