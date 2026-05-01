@@ -4,6 +4,16 @@
 
 All content in this file and in any spec file must be written in **English only**.
 
+## README Files
+
+- The README is maintained in two languages: `README.md` (English) and
+  `README.pt-BR.md` (Brazilian Portuguese).
+- Any change to one version must be mirrored in the other in the same
+  commit. Both files must stay in sync in structure, sections, and
+  content.
+- Both files must keep the language switcher `[EN](README.md) - [PT](README.pt-BR.md)`
+  near the top of the file.
+
 ## Specification Files
 
 - All spec files must be created exclusively in the `docs/specs/` directory.
