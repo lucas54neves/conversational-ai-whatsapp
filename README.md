@@ -1,5 +1,7 @@
 # Conversational Nutrition Agent on WhatsApp
 
+[EN](README.md) - [PT](README.pt-BR.md)
+
 A Brazilian Portuguese nutrition assistant that runs on WhatsApp. Users log
 meals in natural language and the agent tracks calories and macros against
 daily targets calculated from a personal profile (Mifflin-St Jeor with
